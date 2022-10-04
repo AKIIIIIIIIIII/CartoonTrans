@@ -4,8 +4,13 @@ from skimage.feature import local_binary_pattern
 from scipy.ndimage import find_objects
 from skimage.segmentation import find_boundaries
 from skimage.color import rgb2lab
+from torchvision.utils import save_image
+from torch.autograd import Variable
+from torchvision import transforms
 from joblib import Parallel, delayed
 import torch
+import os
+from PIL import Image
 import torch.nn as nn
 
 class SuperPixel():
@@ -340,9 +345,22 @@ def _calculate_fill_sim(ri, rj, imsize):
 
     return 1.0 - (bbsize - ri['size'] - rj['size']) / imsize
 
+def save_training_images(image, dest_folder, suffix_filename:str):
+    if not os.path.exists(dest_folder):
+        os.makedirs(dest_folder)
+    save_image(image, os.path.join(dest_folder, f"{suffix_filename}.png"))
 
 if __name__ == "__main__":
+    image = "/content/CartoonTrans/data/val/photo/0.jpg"
+    super_pixel = SuperPixel(mode='sscolor')
+    transform = transforms.Compose([transforms.Resize(256),
+                                    transforms.ToTensor(),
+                                    transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
+    image = Variable(transform(Image.open(image).convert('RGB')).unsqueeze(0).cuda())
+  #  input = torch.randn(5,3,256,256)
+    result = super_pixel.process(image)
+    save_training_images(result, "./testtest", "superpixss")
     super_pixel = SuperPixel(mode='simple')
-    input = torch.randn(5,3,256,256)
-    result = super_pixel.process(input)
+    result = super_pixel.process(image)
+    save_training_images(result, "./testtest", "superpixsimple")
     print(result.shape)
